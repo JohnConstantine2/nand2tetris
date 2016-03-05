@@ -1,0 +1,76 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/05/Memory.hdl
+
+/**
+ * The complete address space of the Hack computer's memory,
+ * including RAM and memory-mapped I/O. 
+ * The chip facilitates read and write operations, as follows:
+ *     Read:  out(t) = Memory[address(t)](t)
+ *     Write: if load(t-1) then Memory[address(t-1)](t) = in(t-1)
+ * In words: the chip always outputs the value stored at the memory 
+ * location specified by address. If load==1, the in value is loaded 
+ * into the memory location specified by address. This value becomes 
+ * available through the out output from the next time step onward.
+ * Address space rules:
+ * Only the upper 16K+8K+1 words of the Memory chip are used. 
+ * Access to address>0x6000 is invalid. Access to any address in 
+ * the range 0x4000-0x5FFF results in accessing the screen memory 
+ * map. Access to address 0x6000 results in accessing the keyboard 
+ * memory map. The behavior in these addresses is described in the 
+ * Screen and Keyboard chip specifications given in the book.
+ */
+
+CHIP Memory {
+    IN in[16], load, address[15];
+    OUT out[16];
+
+    PARTS:
+    // Put your code here:
+    
+    // Compute negative of 16384.
+    Not16(in[15]=false, in[14]=true, in[0..13]=false, out=not16384);
+    Inc16(in=not16384, out=neg16384);
+
+    // Compute negative of 16383.
+    Not16(in[15]=false, in[14]=false, in[0..13]=true, out=not16383);
+    Inc16(in=not16383, out=neg);
+
+    // Compute negative of 1.
+    Not16(in[1..15]=false, in[0]=true, out=notOne);
+    Inc16(in=notOne, out=negOne);
+
+    // Compute negative of 8192.
+    Not16(in[15]=false, in[14]=false, in[13]=true, in[0..12]=false, out=not8192);
+    Inc16(in=not8192, out=neg8192);
+
+    // Minus 16383 from address.
+    Add16(a[15]=false, a[0..14]=address, b=neg, out[0..13]=addrScr);
+
+    // Minus 16384 to get the actual address of the Screen Map.
+    // Add16(a[15]=false, a[14]=false, a[0..13]=addrScr, b=negOne, out[0..13]=addrScr2, out[0..12]=addrScreen);
+    Add16(a[15]=false, a[0..14]=address, b=neg16384, out[0..12]=addrScreen);
+
+    // Minus 8192 from address.
+    Add16(a[14..15]=false, a[0..13]=addrScr, b=neg8192, out[0]=addrKeyboard, out=addrKb);
+
+    // Minus 1 from address.
+    Add16(a=addrKb, b=negOne, out[0..7]=addrZero1, out[8..15]=addrZero2);
+
+    // Or and Not addrZero to determine if it is really zero.
+    Or8Way(in=addrZero1, out=orZero1);
+    Or8Way(in=addrZero2, out=orZero2);
+    Or(a=orZero1, b=orZero2, out=orZero);
+    Not(in=orZero, out=notZero);
+
+    DMux4Way(in=load, sel[0]=notZero, sel[1]=address[14], a=loadRam1, b=loadRam2, c=loadScreen, d=loadKeyboard);
+    Or(a=loadRam1, b=loadRam2, out=loadRam);
+
+    RAM16K(in=in, load=loadRam, address=address[0..13], out=outRam);
+    Screen(in=in, load=loadScreen, address=addrScreen, out=outScreen);
+    Keyboard(out=outKeyboard);
+
+    Mux4Way16(a=outRam, b=outRam, c=outScreen, d=outKeyboard, sel[0]=notZero, sel[1]=address[14], out=out);
+
+}

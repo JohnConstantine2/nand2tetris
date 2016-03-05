@@ -1,0 +1,35 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/03/a/RAM8.hdl
+
+/**
+ * Memory of 8 registers, each 16 bit-wide. Out holds the value
+ * stored at the memory location specified by address. If load==1, then 
+ * the in value is loaded into the memory location specified by address 
+ * (the loaded value will be emitted to out from the next time step onward).
+ */
+
+CHIP RAM8 {
+    IN in[16], load, address[3];
+    OUT out[16];
+
+    PARTS:
+    // Put your code here:
+    // Use 8Way Demultiplexer to select which register to load the value in.
+    DMux8Way(in=load, sel=address, a=muxa, b=muxb, c=muxc, d=muxd, e=muxe, f=muxf, g=muxg, h=muxh);
+    
+    // Connect the input and the outputs from the Demultiplexer to all the registers.  
+    Register(in=in, load=muxa, out=outa);
+    Register(in=in, load=muxb, out=outb);
+    Register(in=in, load=muxc, out=outc);
+    Register(in=in, load=muxd, out=outd);
+    Register(in=in, load=muxe, out=oute);
+    Register(in=in, load=muxf, out=outf);
+    Register(in=in, load=muxg, out=outg);
+    Register(in=in, load=muxh, out=outh);
+ 
+    // Use 8Way Multiplexer to select which register to get the output from. 
+    Mux8Way16(a=outa, b=outb, c=outc, d=outd, e=oute, f=outf, g=outg, h=outh, sel=address, out=out);
+    
+}
